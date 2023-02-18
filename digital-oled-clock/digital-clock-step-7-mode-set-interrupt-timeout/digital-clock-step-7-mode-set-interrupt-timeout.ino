@@ -44,8 +44,8 @@ volatile byte seconds = 0;
 
 // Constants for the button pins
 // The FALLING interrupt is only available at pin 2 and 3 on the Arduino UNO 
-const int PIN_BUTTON_MODE = 3;
-const int PIN_BUTTON_SET = 2;
+const int PIN_BUTTON_MODE = D0;
+const int PIN_BUTTON_SET = D1;
 
 const int BUTTON_MODE_DEBOUNCE_TIME = 250;
 const int BUTTON_SET_DEBOUNCE_TIME = 10;
