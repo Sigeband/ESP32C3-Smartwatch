@@ -38,26 +38,25 @@
 #endif
 
 // Variables to store the time
-volatile byte hours = 0;
-volatile byte minutes = 0;
-volatile byte seconds = 0;
+byte hours = 0;
+byte minutes = 0;
+byte seconds = 0;
 
 // Constants for the button pins
-// The FALLING interrupt is only available at pin 2 and 3 on the Arduino UNO 
 const int PIN_BUTTON_MODE = D0;
 const int PIN_BUTTON_SET = D1;
 
 const int BUTTON_MODE_DEBOUNCE_TIME = 250;
 const int BUTTON_SET_DEBOUNCE_TIME = 10;
 
-const int MODE_SET_TIMEOUT = 5000;
-
 const int MODE_SHOW_TIME = 0;
 const int MODE_SET_SECONDS = 3;
 const int MODE_SET_MINUTES = 2;
 const int MODE_SET_HOURS = 1;
 
-// Button state variables
+// Variables for the button state
+// We are using the internal pull-up resistors via INPUT_PULLUP, so
+// press is LOW and not pressed is HIGH
 unsigned long elapsedButtonModeMillis = 0;
 unsigned long previousButtonModeMillis = 0;
 
@@ -71,15 +70,12 @@ char timeString[9];
 unsigned long currentMillis = 0;
 
 // Int is enough to store the elapsed time
-unsigned long elapsedTimeUpdateMillis = 0;
+int elapsedTimeUpdateMillis = 0;
 unsigned long previousTimeUpdateMillis = 0;
 
 float percentageOfSecondElapsed = 0;
 
 byte currentMode = MODE_SHOW_TIME;
-
-volatile boolean buttonModePressed = false;
-volatile boolean buttonSetPressed = false;
 
 // A complete list of all displays is available at: https://github.com/olikraus/u8g2/wiki/u8g2setupcpp
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
@@ -89,21 +85,9 @@ void setup(void) {
   u8g2.setFont(u8g2_font_logisoso28_tf);
   u8g2.begin();
 
-  // Empty the interrupt queue. This makes sure there are 
-  // no old pending interrupts in the queue which are processed on startup
-  // More info: https://arduino.stackexchange.com/questions/30968/how-do-interrupts-work-on-the-arduino-uno-and-similar-boards
-  EIFR = bit (INTF0);  // clear flag for interrupt 0
-  EIFR = bit (INTF1);  // clear flag for interrupt 1
-
-  digitalWrite(PIN_BUTTON_MODE, HIGH);
-  digitalWrite(PIN_BUTTON_SET, HIGH);
-
   // Configure the pins of the buttons with the internal PULLUP resistor
   pinMode(PIN_BUTTON_MODE, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PIN_BUTTON_MODE), modeButtonPressedInterrupt, FALLING);
-
   pinMode(PIN_BUTTON_SET, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(PIN_BUTTON_SET), setButtonPressedInterrupt, FALLING);
 
 }
 
@@ -112,29 +96,22 @@ void loop(void) {
   // millis() itself takes 1.812 micro seconds that is 0.001812 milli seconds
   // https://arduino.stackexchange.com/questions/113/is-it-possible-to-find-the-time-taken-by-millis
   currentMillis = millis();
+  
+  if (digitalRead(PIN_BUTTON_MODE) == LOW) {
+    buttonModeHandler();
+  }
 
-  elapsedButtonModeMillis = currentMillis - previousButtonModeMillis;
-  elapsedButtonSetMillis = currentMillis - previousButtonSetMillis;
+  if (digitalRead(PIN_BUTTON_SET) == LOW) {
+    buttonSetHandler();
+  }
+
 
   checkTime();
 
   if (currentMode == MODE_SHOW_TIME) {
     increaseSeconds();
   } else {
-
-    if (elapsedButtonModeMillis > MODE_SET_TIMEOUT && elapsedButtonSetMillis > MODE_SET_TIMEOUT) {
-      currentMode = MODE_SHOW_TIME;
-    }
-    
     previousTimeUpdateMillis = currentMillis;
-  }
-
-  if (buttonModePressed) {
-    modeButtonHandler();
-  }
-
-  if (buttonSetPressed) {
-    buttonSetHandler();
   }
 
   drawScreen();
@@ -160,12 +137,10 @@ void checkTime() {
   }
 }
 
-void modeButtonPressedInterrupt() {
-  buttonModePressed = true;
-}
-
-void modeButtonHandler() {
+void buttonModeHandler() {
+  elapsedButtonModeMillis = currentMillis - previousButtonModeMillis;
   if (elapsedButtonModeMillis > BUTTON_MODE_DEBOUNCE_TIME) {
+    Serial.println("Mode Handler");
     previousButtonModeMillis = currentMillis;
     currentMode++;
 
@@ -174,16 +149,13 @@ void modeButtonHandler() {
     }
 
   }
-  buttonModePressed = false;
-}
-
-
-void setButtonPressedInterrupt() {
-  buttonSetPressed = true;
 }
 
 void buttonSetHandler() {
+  elapsedButtonSetMillis = currentMillis - previousButtonSetMillis;
+  Serial.println(elapsedButtonSetMillis);
   if (elapsedButtonSetMillis > BUTTON_SET_DEBOUNCE_TIME) {
+    Serial.println("Set Handler");
     previousButtonSetMillis = currentMillis;
 
     if (currentMode == MODE_SET_SECONDS) {
@@ -196,7 +168,6 @@ void buttonSetHandler() {
       hours++;
     }
   }
-  buttonSetPressed = false;
 }
 
 void increaseSeconds() {
