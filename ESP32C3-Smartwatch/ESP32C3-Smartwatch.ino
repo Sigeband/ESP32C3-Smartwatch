@@ -1,34 +1,11 @@
-/*
-
- Bas on Tech - Digital clock
- This project is part of the courses on https://arduino-tutorials.net
-  
- (c) Copyright 2018-2020 - Bas van Dijk / Bas on Tech
- This code and course is copyrighted. It is not allowed to use these courses commerically
- without explicit written approval
- 
- YouTube:    https://www.youtube.com/c/BasOnTech
- Facebook:   https://www.facebook.com/BasOnTechChannel
- Instagram:  https://www.instagram.com/BasOnTech
- Twitter:    https://twitter.com/BasOnTech
- 
- 
-------------------------------------------------------------------------------   
-
-   128x64 SSD1306 OLED
-
-   PIN CONNECTIONS:
-
-   VCC    5V
-   GND    GND
-   SCL    A5
-   SDA    A4
-
-*/
-
 
 #include <Arduino.h>
 #include <U8g2lib.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <Arduino_JSON.h>
+#include <WiFiManager.h>
+
 
 #ifdef U8X8_HAVE_HW_SPI
 #include <SPI.h>
@@ -36,6 +13,12 @@
 #ifdef U8X8_HAVE_HW_I2C
 #include <Wire.h>
 #endif
+
+
+String openWeatherMapApiKey = "your-api-key";
+String city = "Cityname&units=metric&"; //replace Cityname and units with your prefered.
+String countryCode = "your-country-code";  //replace 2- digit country code
+String jsonBuffer;
 
 // Variables to store the time
 byte hours = 0;
@@ -45,6 +28,7 @@ byte seconds = 0;
 // Constants for the button pins
 const int PIN_BUTTON_MODE = D0;
 const int PIN_BUTTON_SET = D1;
+const int WEATHERPIN = D2;
 
 const int BUTTON_MODE_DEBOUNCE_TIME = 250;
 const int BUTTON_SET_DEBOUNCE_TIME = 10;
@@ -79,27 +63,36 @@ byte currentMode = MODE_SHOW_TIME;
 
 
 
-
- 
-
-
-
-
 // A complete list of all displays is available at: https://github.com/olikraus/u8g2/wiki/u8g2setupcpp
 U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 void setup(void) {
-   
 
-  
+  Serial.begin(115200);
 
-  u8g2.setFont(u8g2_font_logisoso28_tf);
-  u8g2.begin();
-
-  // Configure the pins of the buttons with the internal PULLUP resistor
+    // Configure the pins of the buttons with the internal PULLUP resistor
   pinMode(PIN_BUTTON_MODE, INPUT_PULLUP);
   pinMode(PIN_BUTTON_SET, INPUT_PULLUP);
+  pinMode(WEATHERPIN, INPUT_PULLUP);
 
+ 
+  bool res;
+
+  WiFiManager wm; //start WifiManager
+  res = wm.autoConnect("AutoConnectAP","password"); //Autoconnect with the credentials entered in the web-portal
+  
+  Serial.println("Connecting");
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to WiFi network with IP Address: ");
+  Serial.println(WiFi.localIP());
+ 
+
+  u8g2.setFont(u8g2_font_logisoso28_tf); //set font
+  u8g2.begin();
 }
 
 void loop(void) {
@@ -107,12 +100,17 @@ void loop(void) {
   // millis() itself takes 1.812 micro seconds that is 0.001812 milli seconds
   // https://arduino.stackexchange.com/questions/113/is-it-possible-to-find-the-time-taken-by-millis
   currentMillis = millis();
+
+  if (digitalRead(WEATHERPIN) == LOW) { // if WEATHERPIN is low, execute function: updateweather
+    updateWeather();
+  }
+
   
-  if (digitalRead(PIN_BUTTON_MODE) == LOW) {
+  if (digitalRead(PIN_BUTTON_MODE) == LOW) {// if PIN_BUTTON_MODE is low, execute function: buttonModeHandler
     buttonModeHandler();
   }
 
-  if (digitalRead(PIN_BUTTON_SET) == LOW) {
+  if (digitalRead(PIN_BUTTON_SET) == LOW) {// if PIN_BUTTON_SET is low, execute function: buttonSetHandler
     buttonSetHandler();
   }
 
@@ -147,6 +145,45 @@ void checkTime() {
     hours = 0;
   }
 }
+  
+void updateWeather() {
+ // Send an HTTP GET request to get the json data
+
+    if(WiFi.status()== WL_CONNECTED){
+      String serverPath = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "," + countryCode + "&APPID=" + openWeatherMapApiKey;
+                           //https://api.openweathermap.org/data/2.5/weather?q=buxtehude&units=metric&DE&APPID=yourauthkey
+      jsonBuffer = httpGETRequest(serverPath.c_str());
+      Serial.println(jsonBuffer);
+      JSONVar myObject = JSON.parse(jsonBuffer);
+  
+      // JSON.typeof(jsonVar) can be used to get the type of the var
+      if (JSON.typeof(myObject) == "undefined") {
+        Serial.println("Parsing input failed!");
+        return;
+      }
+    
+      /*
+      If you uncomment this, you will get all the weatherdata neatly printed in the serial monitor.
+
+      Serial.print("JSON object = ");
+      Serial.println(myObject);
+      Serial.print("Temperature: ");
+      Serial.println(myObject["main"]["temp"]);
+      Serial.print("Pressure: ");
+      Serial.println(myObject["main"]["pressure"]);
+      Serial.print("Humidity: ");
+      Serial.println(myObject["main"]["humidity"]);
+      Serial.print("Wind Speed: ");
+      Serial.println(myObject["wind"]["speed"]);
+      */
+
+    }
+    else {
+      Serial.println("WiFi Disconnected");
+    }
+    
+  }
+
 
 void buttonModeHandler() {
   elapsedButtonModeMillis = currentMillis - previousButtonModeMillis;
@@ -161,6 +198,7 @@ void buttonModeHandler() {
 
   }
 }
+
 
 void buttonSetHandler() {
   elapsedButtonSetMillis = currentMillis - previousButtonSetMillis;
@@ -198,6 +236,7 @@ void increaseSeconds() {
 
 void drawScreen() {
   u8g2.firstPage();
+  u8g2.setFont(u8g2_font_logisoso28_tf);
 
   do {
 
@@ -205,13 +244,14 @@ void drawScreen() {
       u8g2.drawTriangle((currentMode - 1) * 43 + 5, 0, currentMode * 43 - 5, 0, (currentMode - 1) * 43 + 21, 5);
     }
 
-    drawAnimation();
+    //drawAnimation();
     drawTime();
 
   } while (u8g2.nextPage());
 }
 
 void drawTime() {
+  u8g2.setFont(u8g2_font_logisoso28_tf); //set font to big one for the clock
 
   // Found at https://forum.arduino.cc/index.php?topic=371117.0
   // sprintf_P uses the Program Memory instead of RAM, more info at http://gammon.com.au/progmem
@@ -219,17 +259,42 @@ void drawTime() {
   sprintf_P(timeString, PSTR("%2d:%02d:%02d"), hours, minutes, seconds);
 
   // Draw the timeString
-  u8g2.drawStr(0, 45, timeString);
+  u8g2.drawStr(0, 45, timeString); //draw the time on the display
+       
+      JSONVar myObject = JSON.parse(jsonBuffer);
+     u8g2.setCursor(0, 10); //start at the beginning
+     
+     u8g2.setFont(u8g2_font_luRS08_te); //set font to a small one for the temperature
+     
+     u8g2.println(myObject["main"]["temp"]); //print the temperature out of the main file.
+
 
 }
 
-void drawAnimation() {
-  // Calculate the percentage elapsed of a second
-  percentageOfSecondElapsed = elapsedTimeUpdateMillis / 1000.0;
 
-  if (currentMode == MODE_SHOW_TIME) {
-    // Draw the yellow lines
-    u8g2.drawBox(0, 0, 127 - (127 * percentageOfSecondElapsed), 2);
-    u8g2.drawBox(0, 3, (127 * percentageOfSecondElapsed), 2);
+String httpGETRequest(const char* serverName) {
+  WiFiClient client;
+  HTTPClient http;
+    
+  // Your Domain name with URL path or IP address with path
+  http.begin(client, serverName);
+  
+  // Send HTTP POST request
+  int httpResponseCode = http.GET();
+  
+  String payload = "{}"; 
+  
+  if (httpResponseCode>0) {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    payload = http.getString();
   }
+  else {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  // Free resources
+  http.end();
+
+  return payload;
 }
