@@ -80,7 +80,7 @@ void setup(void) {
 
   WiFiManager wm; //start WifiManager
   res = wm.autoConnect("AutoConnectAP","password"); //first parameter is name of access point, second is the password
-  
+  wifiManager.setConfigPortalTimeout(180); // timeouts after 3 minutes of trying to connect to a wifi network, then restarts the AP where you can enter ssid/password
   Serial.println("Connecting");
   while(WiFi.status() != WL_CONNECTED) {
     delay(500);
