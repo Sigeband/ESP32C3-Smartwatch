@@ -262,12 +262,12 @@ void drawTime() {
   u8g2.drawStr(0, 45, timeString); //draw the time on the display
        
       JSONVar myObject = JSON.parse(jsonBuffer);
-     u8g2.setCursor(0, 10); //start at the beginning
-     
-     u8g2.setFont(u8g2_font_luRS08_te); //set font to a small one for the temperature
-     
-     u8g2.println(myObject["main"]["temp"]); //print the temperature out of the main file.
 
+     u8g2.setCursor(0, 10); //start at the beginning
+     u8g2.setFont(u8g2_font_luRS08_te); //set font to a small one for the temperature
+     u8g2.println(myObject["main"]["temp"]); //print the temperature out of the main file.
+     u8g2.setCursor(32, 10); //set cursor right next to the end of the temperature. the problem with this is that if the temperature is 1-9 its too far and if its 10+ then its right next to the last digit.
+     u8g2.println("C"); // print C for celsius.
 
 }
 
