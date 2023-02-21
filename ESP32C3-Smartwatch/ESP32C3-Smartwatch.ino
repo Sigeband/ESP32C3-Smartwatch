@@ -254,21 +254,27 @@ void drawTime() {
   u8g2.setFont(u8g2_font_logisoso28_tf); //set font to big one for the clock
 
   // Found at https://forum.arduino.cc/index.php?topic=371117.0
-  // sprintf_P uses the Program Memory instead of RAM, more info at http://gammon.com.au/progmem
-  // Here we format the minutes and seconds with a leading zero: e.g. 01, 02, 03 etc.
+   // sprintf_P uses the Program Memory instead of RAM, more info at http://gammon.com.au/progmem
+   // Here we format the minutes and seconds with a leading zero: e.g. 01, 02, 03 etc.
   sprintf_P(timeString, PSTR("%2d:%02d:%02d"), hours, minutes, seconds);
 
   // Draw the timeString
   u8g2.drawStr(0, 45, timeString); //draw the time on the display
        
-      JSONVar myObject = JSON.parse(jsonBuffer);
+   JSONVar myObject = JSON.parse(jsonBuffer);
 
+    // display temperature
      u8g2.setCursor(0, 10); //start at the beginning
      u8g2.setFont(u8g2_font_luRS08_te); //set font to a small one for the temperature
      u8g2.println(myObject["main"]["temp"]); //print the temperature out of the main file.
      u8g2.setCursor(32, 10); //set cursor right next to the end of the temperature. the problem with this is that if the temperature is 1-9 its too far and if its 10+ then its right next to the last digit.
      u8g2.println("C"); // print C for celsius.
 
+     //display humidity
+     u8g2.setCursor(106, 10);
+     u8g2.println(myObject["main"]["humidity"]);
+     u8g2.setCursor(120, 10);
+     u8g2.println("%");
 }
 
 
