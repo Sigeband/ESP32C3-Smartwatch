@@ -79,7 +79,7 @@ void setup(void) {
   bool res;
 
   WiFiManager wm; //start WifiManager
-  res = wm.autoConnect("AutoConnectAP","password"); //Autoconnect with the credentials entered in the web-portal
+  res = wm.autoConnect("AutoConnectAP","password"); //first parameter is name of access point, second is the password
   
   Serial.println("Connecting");
   while(WiFi.status() != WL_CONNECTED) {
