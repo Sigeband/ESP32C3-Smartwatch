@@ -271,7 +271,7 @@ void drawTime() {
      u8g2.println("C"); // print C for celsius.
 
      //display humidity
-     u8g2.setCursor(106, 10);
+     u8g2.setCursor(100, 10); //again there is space because if there is 100% humidity the % would be overwritten.
      u8g2.println(myObject["main"]["humidity"]);
      u8g2.setCursor(120, 10);
      u8g2.println("%");
