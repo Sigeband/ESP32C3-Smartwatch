@@ -29,7 +29,7 @@ byte seconds = 0;
 const int PIN_BUTTON_MODE = D0;
 const int PIN_BUTTON_SET = D1;
 const int WEATHERPIN = D2;
-const int WIFIPIN = D3
+const int WIFIPIN = D3;
 
 const int BUTTON_MODE_DEBOUNCE_TIME = 250;
 const int BUTTON_SET_DEBOUNCE_TIME = 10;
@@ -75,7 +75,7 @@ void setup(void) {
   pinMode(PIN_BUTTON_MODE, INPUT_PULLUP);
   pinMode(PIN_BUTTON_SET, INPUT_PULLUP);
   pinMode(WEATHERPIN, INPUT_PULLUP);
-  pinmode(WIFIPIN, INPUT_PULLUP);
+  pinMode(WIFIPIN, INPUT_PULLUP);
 
  
   bool res;
@@ -134,7 +134,7 @@ void loop(void) {
 }
 
 void WIFIUPDATE() {
-
+ bool res;
 WiFiManager wm; //start WifiManager
   res = wm.autoConnect("AutoConnectAP","password");
 
