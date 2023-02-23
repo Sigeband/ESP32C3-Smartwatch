@@ -29,6 +29,7 @@ byte seconds = 0;
 const int PIN_BUTTON_MODE = D0;
 const int PIN_BUTTON_SET = D1;
 const int WEATHERPIN = D2;
+const int WIFIPIN = D3
 
 const int BUTTON_MODE_DEBOUNCE_TIME = 250;
 const int BUTTON_SET_DEBOUNCE_TIME = 10;
@@ -74,6 +75,7 @@ void setup(void) {
   pinMode(PIN_BUTTON_MODE, INPUT_PULLUP);
   pinMode(PIN_BUTTON_SET, INPUT_PULLUP);
   pinMode(WEATHERPIN, INPUT_PULLUP);
+  pinmode(WIFIPIN, INPUT_PULLUP);
 
  
   bool res;
@@ -105,7 +107,11 @@ void loop(void) {
     updateWeather();
   }
 
-  
+  if (digitalRead(WIFIPIN) == LOW) { // if WIFIPIN is low, execute function: WIFIUPDATE
+    WIFIUPDATE();
+  }
+
+
   if (digitalRead(PIN_BUTTON_MODE) == LOW) {// if PIN_BUTTON_MODE is low, execute function: buttonModeHandler
     buttonModeHandler();
   }
@@ -126,6 +132,18 @@ void loop(void) {
   drawScreen();
 
 }
+
+void WIFIUPDATE() {
+
+WiFiManager wm; //start WifiManager
+  res = wm.autoConnect("AutoConnectAP","password");
+
+
+
+
+}
+
+
 
 void checkTime() {
   // Check if a minutes has been elapsed
